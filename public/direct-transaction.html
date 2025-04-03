@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Direct Transaction Test</title>
+  <script src="https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js" type="application/javascript"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .container {
+      border: 2px solid #ff3333;
+      background-color: #fff8f8;
+      padding: 20px;
+      border-radius: 8px;
+    }
+    button {
+      background-color: #ff3333;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    button:disabled {
+      background-color: #cccccc;
+    }
+    .log {
+      margin-top: 20px;
+      padding: 10px;
+      background-color: #f0f0f0;
+      border-radius: 4px;
+      font-family: monospace;
+      height: 200px;
+      overflow-y: auto;
+    }
+    .recipient {
+      margin-top: 10px;
+      padding: 10px;
+      background-color: white;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    h1 {
+      color: #ff3333;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Direct Transaction Test</h1>
+    <p><strong>This is a standalone HTML page that bypasses React/Next.js completely.</strong></p>
+    
+    <div class="recipient">
+      <strong>Target recipient:</strong>
+      <div id="recipient">0xc7d2a5f7ebfccbc5f08d33f3e5475fa9f1a85fa8</div>
+    </div>
+    
+    <div style="margin-top: 20px;">
+      <button id="sendButton">Send Test Transaction</button>
+    </div>
+    
+    <div class="log" id="log">
+      [Log] Waiting for action...
+    </div>
+  </div>
+
+  <script>
+    // Log function
+    function log(message) {
+      const logElement = document.getElementById('log');
+      logElement.innerHTML += `<br>[Log] ${message}`;
+      logElement.scrollTop = logElement.scrollHeight;
+    }
+
+    // Send transaction function
+    async function sendTransaction() {
+      const button = document.getElementById('sendButton');
+      button.disabled = true;
+      
+      try {
+        log('Checking if MetaMask is installed...');
+        if (!window.ethereum) {
+          throw new Error('MetaMask not installed');
+        }
+        
+        log('Requesting accounts...');
+        await window.ethereum.request({ method: 'eth_requestAccounts' });
+        
+        log('Creating provider...');
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        
+        log('Getting signer...');
+        const signer = provider.getSigner();
+        
+        log('Getting signer address...');
+        const address = await signer.getAddress();
+        log(`Signer address: ${address}`);
+        
+        log('Getting network...');
+        const network = await provider.getNetwork();
+        log(`Network: ${network.name} (${network.chainId})`);
+        
+        // Target recipient
+        const recipient = document.getElementById('recipient').textContent;
+        log(`Target recipient: ${recipient}`);
+        
+        // Create transaction
+        log('Creating transaction...');
+        const tx = {
+          to: recipient,
+          value: ethers.utils.parseEther('0.0001'),
+          gasLimit: 21000
+        };
+        
+        log(`Transaction details: ${JSON.stringify(tx)}`);
+        
+        // Send transaction
+        log('Sending transaction...');
+        const txResponse = await signer.sendTransaction(tx);
+        log(`Transaction sent: ${txResponse.hash}`);
+        
+        // Wait for confirmation
+        log('Waiting for confirmation...');
+        const receipt = await txResponse.wait();
+        log(`Transaction confirmed: ${receipt.transactionHash}`);
+        
+        // Check the actual recipient
+        log(`Actual recipient from receipt: ${receipt.to}`);
+        
+        if (receipt.to.toLowerCase() !== recipient.toLowerCase()) {
+          log(`⚠️ WARNING: Recipient mismatch! Expected ${recipient} but got ${receipt.to}`);
+        } else {
+          log(`✅ SUCCESS: Transaction sent to correct recipient!`);
+        }
+        
+      } catch (error) {
+        log(`❌ ERROR: ${error.message}`);
+        console.error(error);
+      } finally {
+        button.disabled = false;
+      }
+    }
+
+    // Add event listener
+    document.getElementById('sendButton').addEventListener('click', sendTransaction);
+    
+    // Log initial info
+    log('Page loaded. Click the button to send a test transaction.');
+    log('This page uses ethers.js v5 directly, bypassing any React/Next.js code.');
+  </script>
+</body>
+</html>
+
